@@ -1,0 +1,29 @@
+name: Check Deploy Configuration
+
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main, staging ]
+
+jobs:
+  check-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if deployment is enabled
+        run: |
+          if [ "${{ vars.DEPLOY_ENABLED }}" != "true" ]; then
+            echo "ℹ️ Deployment is currently disabled"
+            echo ""
+            echo "To enable automatic deployment:"
+            echo "1. Go to Settings > Secrets and variables > Actions > Variables"
+            echo "2. Create a new variable: DEPLOY_ENABLED = true"
+            echo "3. Configure required secrets (see .github/DEPLOYMENT.md)"
+            echo ""
+            echo "Deployment will be skipped for this workflow run."
+          else
+            echo "✅ Deployment is enabled"
+            echo ""
+            echo "Deployment will run when pushing to main or staging branches."
+          fi

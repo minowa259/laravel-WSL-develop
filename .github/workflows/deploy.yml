@@ -9,13 +9,47 @@ on:
 
 jobs:
   deploy-staging:
-    if: github.ref == 'refs/heads/staging'
+    # シークレットが設定されている場合のみ実行
+    if: github.ref == 'refs/heads/staging' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: staging
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Check deployment secrets
+        run: |
+          MISSING_SECRETS=""
+
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY_STAGING }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_PRIVATE_KEY_STAGING "
+          fi
+
+          if [ -z "${{ secrets.SSH_USER_STAGING }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_USER_STAGING "
+          fi
+
+          if [ -z "${{ secrets.SSH_HOST_STAGING }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_HOST_STAGING "
+          fi
+
+          if [ -z "${{ secrets.DEPLOY_PATH_STAGING }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}DEPLOY_PATH_STAGING "
+          fi
+
+          if [ -n "$MISSING_SECRETS" ]; then
+            echo "❌ Error: The following secrets are not configured:"
+            echo "$MISSING_SECRETS"
+            echo ""
+            echo "Please configure these secrets in:"
+            echo "Settings > Secrets and variables > Actions > Secrets"
+            echo ""
+            echo "See .github/DEPLOYMENT.md for detailed instructions"
+            exit 1
+          fi
+
+          echo "✅ All required secrets are configured"
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -56,18 +90,18 @@ jobs:
             docker compose exec -T app php artisan up
           ENDSSH
 
-      - name: Notify deployment result
-        if: always()
+      - name: Notify deployment result (Slack)
+        if: always() && secrets.SLACK_WEBHOOK != ''
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: 'ステージング環境へのデプロイが${{ job.status }}しました'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          text: 'ステージング環境へのデプロイが完了しました'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   deploy-production:
-    if: github.ref == 'refs/heads/main'
+    # シークレットが設定されている場合のみ実行
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
 
@@ -75,7 +109,48 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create backup before deployment
+      - name: Check deployment secrets
+        run: |
+          MISSING_SECRETS=""
+
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_PRIVATE_KEY_PROD "
+          fi
+
+          if [ -z "${{ secrets.SSH_USER_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_USER_PROD "
+          fi
+
+          if [ -z "${{ secrets.SSH_HOST_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}SSH_HOST_PROD "
+          fi
+
+          if [ -z "${{ secrets.DEPLOY_PATH_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}DEPLOY_PATH_PROD "
+          fi
+
+          if [ -z "${{ secrets.DB_PASSWORD_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}DB_PASSWORD_PROD "
+          fi
+
+          if [ -z "${{ secrets.APP_URL_PROD }}" ]; then
+            MISSING_SECRETS="${MISSING_SECRETS}APP_URL_PROD "
+          fi
+
+          if [ -n "$MISSING_SECRETS" ]; then
+            echo "❌ Error: The following secrets are not configured:"
+            echo "$MISSING_SECRETS"
+            echo ""
+            echo "Please configure these secrets in:"
+            echo "Settings > Secrets and variables > Actions > Secrets"
+            echo ""
+            echo "See .github/DEPLOYMENT.md for detailed instructions"
+            exit 1
+          fi
+
+          echo "✅ All required secrets are configured"
+
+      - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
@@ -165,12 +240,11 @@ jobs:
             docker compose exec -T app php artisan up
           ENDSSH
 
-      - name: Notify deployment result
-        if: always()
+      - name: Notify deployment result (Slack)
+        if: always() && secrets.SLACK_WEBHOOK != ''
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: '本番環境へのデプロイが${{ job.status }}しました'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          text: '本番環境へのデプロイが完了しました'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

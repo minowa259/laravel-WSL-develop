@@ -11,6 +11,22 @@
 
 このプロジェクトは、Dockerを使用したLaravel開発環境です。
 
+<!--
+GitHub Actionsのバッジを追加する場合は、以下をコメント解除してリポジトリ名を変更してください:
+[![CI](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml)
+[![Deploy](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/deploy.yml)
+-->
+
+## 特徴
+
+✨ **マルチ環境対応**: ローカル、開発、ステージング、本番の4環境を1つの設定で管理
+🐳 **Docker完全統合**: PHP 8.3、MySQL 8.0、Redis、Nginxを含む完全なコンテナ化環境
+🔧 **開発ツール完備**: Mailhog、phpMyAdmin、Redis Commanderなどの開発ツールをプロファイル管理
+🚀 **CI/CD対応**: GitHub Actionsによる自動テスト、静的解析、デプロイ
+📦 **コード品質管理**: PHPStan、PHP-CS-Fixer、PHPCSによる品質チェック
+🛡️ **セキュリティ強化**: 環境別のPHP/Nginx設定、セキュリティヘッダー、脆弱性スキャン
+📝 **包括的ドキュメント**: セットアップからデプロイまで日本語で完全ドキュメント化
+
 ## 環境情報
 
 - Laravel Framework: 12.38.1
@@ -367,6 +383,49 @@ docker compose exec -T db mysql -u laravel -psecret laravel_dev < local_backup.s
 **注意**: データベースポートは共有されるため、同時起動する場合は`.env`ファイルで`DB_PORT`を変更してください。
 
 ## デプロイガイド
+
+### CI/CD自動デプロイの設定
+
+このプロジェクトには、GitHub Actionsを使用した自動デプロイワークフローが含まれています。
+
+**重要**: デプロイワークフローは**デフォルトで無効**です。以下の設定を行うまで、テスト・静的解析・セキュリティチェックのみが実行されます。
+
+#### デプロイを有効化する（オプション）
+
+デプロイ機能を使用する場合のみ、以下の設定を行ってください:
+
+##### 必要なシークレットの設定
+
+GitHubリポジトリの設定で以下のシークレットとVariablesを設定してください:
+
+**Settings > Secrets and variables > Actions**
+
+##### Repository Variables（必須）
+- `DEPLOY_ENABLED`: `true` に設定（デプロイを有効化）
+
+##### ステージング環境用シークレット
+- `SSH_PRIVATE_KEY_STAGING`: SSHプライベートキー
+- `SSH_USER_STAGING`: SSHユーザー名
+- `SSH_HOST_STAGING`: サーバーホスト名
+- `DEPLOY_PATH_STAGING`: デプロイ先のパス
+
+##### 本番環境用シークレット
+- `SSH_PRIVATE_KEY_PROD`: SSHプライベートキー
+- `SSH_USER_PROD`: SSHユーザー名
+- `SSH_HOST_PROD`: サーバーホスト名
+- `DEPLOY_PATH_PROD`: デプロイ先のパス
+- `DB_PASSWORD_PROD`: データベースパスワード
+- `APP_URL_PROD`: 本番環境のURL
+
+##### オプション（Slack通知用）
+- `SLACK_WEBHOOK`: Slack Webhook URL
+
+#### デプロイワークフローの動作
+
+- **ステージング環境**: `staging`ブランチにpushすると自動デプロイ
+- **本番環境**: `main`ブランチにpushすると自動デプロイ
+
+デプロイを無効化する場合は、`DEPLOY_ENABLED`変数を削除またはfalseに設定してください。
 
 ### 初回デプロイ
 
