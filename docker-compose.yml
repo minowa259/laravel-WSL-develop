@@ -3,16 +3,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        ENVIRONMENT: ${APP_ENV:-local}
+        INSTALL_XDEBUG: ${INSTALL_XDEBUG:-false}
     container_name: laravel-app-${APP_ENV:-local}
     restart: ${RESTART_POLICY:-unless-stopped}
     working_dir: /var/www/html
     volumes:
       - ./:/var/www/html${VOLUME_OPTIONS:-}
       - ./docker/php/${PHP_INI:-local.ini}:/usr/local/etc/php/conf.d/local.ini
+      - ./docker/supervisor/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     networks:
       - laravel
     env_file:
       - .env
+    depends_on:
+      - db
+      - redis
 
   nginx:
     image: nginx:alpine
@@ -49,10 +56,59 @@ services:
     image: redis:alpine
     container_name: laravel-redis-${APP_ENV:-local}
     restart: ${RESTART_POLICY:-unless-stopped}
+    command: redis-server --appendonly yes
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data_${APP_ENV:-local}:/data
     networks:
       - laravel
+
+  # Mailhog（開発環境用メールテスト）
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: laravel-mailhog-${APP_ENV:-local}
+    ports:
+      - "${MAILHOG_PORT:-8025}:8025"  # Web UI
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"  # SMTP
+    networks:
+      - laravel
+    profiles:
+      - dev
+
+  # phpMyAdmin（開発環境用DBツール）
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: laravel-phpmyadmin-${APP_ENV:-local}
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME:-laravel}
+      PMA_PASSWORD: ${DB_PASSWORD:-secret}
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    networks:
+      - laravel
+    depends_on:
+      - db
+    profiles:
+      - dev
+
+  # Redis Commander（開発環境用Redisツール）
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: laravel-redis-commander-${APP_ENV:-local}
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    networks:
+      - laravel
+    depends_on:
+      - redis
+    profiles:
+      - dev
 
 networks:
   laravel:
@@ -66,4 +122,12 @@ volumes:
   dbdata_staging:
     driver: local
   dbdata_production:
+    driver: local
+  redis_data_local:
+    driver: local
+  redis_data_development:
+    driver: local
+  redis_data_staging:
+    driver: local
+  redis_data_production:
     driver: local

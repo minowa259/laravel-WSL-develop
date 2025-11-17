@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<ruleset name="Laravel PHPCS">
+    <description>Laravel Project Coding Standard</description>
+
+    <!-- ファイルとディレクトリの設定 -->
+    <file>app</file>
+    <file>config</file>
+    <file>database</file>
+    <file>routes</file>
+    <file>tests</file>
+
+    <!-- 除外するパターン -->
+    <exclude-pattern>*/cache/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/bootstrap/*</exclude-pattern>
+    <exclude-pattern>*.blade.php</exclude-pattern>
+
+    <!-- 引数 -->
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg name="parallel" value="75"/>
+    <arg value="np"/>
+
+    <!-- PSR-12準拠 -->
+    <rule ref="PSR12"/>
+
+    <!-- 配列の記法 -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+    <!-- その他のルール -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="var_dump" value="null"/>
+                <element key="dd" value="null"/>
+                <element key="dump" value="null"/>
+                <element key="die" value="null"/>
+                <element key="eval" value="null"/>
+                <element key="exit" value="null"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- 行の長さ制限（120文字） -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+
+    <!-- 複雑度の制限 -->
+    <rule ref="Generic.Metrics.CyclomaticComplexity">
+        <properties>
+            <property name="complexity" value="10"/>
+            <property name="absoluteComplexity" value="15"/>
+        </properties>
+    </rule>
+
+    <rule ref="Generic.Metrics.NestingLevel">
+        <properties>
+            <property name="nestingLevel" value="5"/>
+            <property name="absoluteNestingLevel" value="10"/>
+        </properties>
+    </rule>
+</ruleset>

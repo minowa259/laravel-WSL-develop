@@ -3,7 +3,8 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(chmod:*)",
-      "Bash(./switch-env.sh:*)"
+      "Bash(./switch-env.sh:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

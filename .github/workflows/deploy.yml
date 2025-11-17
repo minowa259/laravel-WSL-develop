@@ -1,0 +1,176 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main  # 本番環境
+      - staging  # ステージング環境
+  workflow_dispatch:  # 手動実行を許可
+
+jobs:
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
+
+      - name: Deploy to Staging Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_STAGING }}@${{ secrets.SSH_HOST_STAGING }} << 'ENDSSH'
+            cd ${{ secrets.DEPLOY_PATH_STAGING }}
+
+            # メンテナンスモードON
+            docker compose exec -T app php artisan down
+
+            # 最新のコードを取得
+            git pull origin staging
+
+            # 依存関係の更新
+            docker compose exec -T app composer install --no-dev --optimize-autoloader
+
+            # マイグレーション実行
+            docker compose exec -T app php artisan migrate --force
+
+            # キャッシュクリアと最適化
+            docker compose exec -T app php artisan optimize:clear
+            docker compose exec -T app php artisan config:cache
+            docker compose exec -T app php artisan route:cache
+            docker compose exec -T app php artisan view:cache
+
+            # アセットビルド
+            docker compose exec -T app npm ci
+            docker compose exec -T app npm run build
+
+            # コンテナ再起動
+            docker compose restart
+
+            # メンテナンスモードOFF
+            docker compose exec -T app php artisan up
+          ENDSSH
+
+      - name: Notify deployment result
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'ステージング環境へのデプロイが${{ job.status }}しました'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create backup before deployment
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+
+      - name: Backup database
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} << 'ENDSSH'
+            cd ${{ secrets.DEPLOY_PATH_PROD }}
+            BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
+            docker compose exec -T db mysqldump -u laravel -p${{ secrets.DB_PASSWORD_PROD }} laravel_prod > "$BACKUP_FILE"
+            echo "Backup created: $BACKUP_FILE"
+          ENDSSH
+
+      - name: Deploy to Production Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} << 'ENDSSH'
+            cd ${{ secrets.DEPLOY_PATH_PROD }}
+
+            # メンテナンスモードON（カスタムメッセージ付き）
+            docker compose exec -T app php artisan down --message="システムメンテナンス中です" --retry=60
+
+            # 最新のコードを取得
+            git pull origin main
+
+            # 依存関係の更新
+            docker compose exec -T app composer install --no-dev --optimize-autoloader
+
+            # マイグレーション実行
+            docker compose exec -T app php artisan migrate --force
+
+            # キャッシュクリアと最適化
+            docker compose exec -T app php artisan optimize:clear
+            docker compose exec -T app php artisan config:cache
+            docker compose exec -T app php artisan route:cache
+            docker compose exec -T app php artisan view:cache
+
+            # アセットビルド
+            docker compose exec -T app npm ci
+            docker compose exec -T app npm run build
+
+            # Queue Workerを再起動
+            docker compose exec -T app php artisan queue:restart
+
+            # コンテナ再起動
+            docker compose restart
+
+            # ヘルスチェック
+            sleep 10
+            curl -f http://localhost || exit 1
+
+            # メンテナンスモードOFF
+            docker compose exec -T app php artisan up
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.APP_URL_PROD }})
+          if [ $RESPONSE -eq 200 ]; then
+            echo "Deployment successful! HTTP $RESPONSE"
+          else
+            echo "Deployment may have failed. HTTP $RESPONSE"
+            exit 1
+          fi
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} << 'ENDSSH'
+            cd ${{ secrets.DEPLOY_PATH_PROD }}
+
+            # 前のコミットに戻す
+            git reset --hard HEAD~1
+
+            # 依存関係を復元
+            docker compose exec -T app composer install --no-dev --optimize-autoloader
+
+            # マイグレーションをロールバック
+            docker compose exec -T app php artisan migrate:rollback --force
+
+            # キャッシュをクリア
+            docker compose exec -T app php artisan optimize:clear
+
+            # コンテナを再起動
+            docker compose restart
+
+            # メンテナンスモードOFF
+            docker compose exec -T app php artisan up
+          ENDSSH
+
+      - name: Notify deployment result
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '本番環境へのデプロイが${{ job.status }}しました'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
