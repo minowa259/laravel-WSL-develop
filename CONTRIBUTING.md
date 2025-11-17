@@ -32,8 +32,12 @@ cp .env.example .env
 # Dockerコンテナを起動
 make up
 
-# 依存関係のインストール
+# 依存関係のインストール（package-lock.jsonも自動生成されます）
 make install
+
+# package-lock.jsonをコミット（初回のみ、CI/CD用に必須）
+git add package-lock.json
+git commit -m "chore: add package-lock.json"
 
 # マイグレーション実行
 make migrate
@@ -41,6 +45,8 @@ make migrate
 # 開発ツールも起動する場合
 make up-dev
 ```
+
+**重要**: `make install`を実行すると、package-lock.jsonが自動生成されます。これはCI/CDで必要なため、必ずgitにコミットしてください。
 
 ### 開発ツールへのアクセス
 

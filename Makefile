@@ -58,6 +58,9 @@ install: ## 初回セットアップ
 	$(ARTISAN) migrate
 	$(NPM) install
 
+install-dev-tools: ## 開発ツールのインストール
+	$(COMPOSER) require --dev friendsofphp/php-cs-fixer phpstan/phpstan larastan/larastan squizlabs/php_codesniffer
+
 migrate: ## マイグレーション実行
 	$(ARTISAN) migrate
 

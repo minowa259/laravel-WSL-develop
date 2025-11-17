@@ -79,19 +79,19 @@ WORKDIR /var/www/html
 RUN groupadd -g 1000 www && \
     useradd -u 1000 -ms /bin/bash -g www www
 
-# Composerのグローバルパッケージインストール（開発ツール）
+# Composerのグローバルパッケージインストール（Laravel Installerのみ）
 USER www
-RUN composer global require \
-    laravel/installer \
-    friendsofphp/php-cs-fixer \
-    phpstan/phpstan \
-    squizlabs/php_codesniffer
+RUN composer global require laravel/installer
 
 # PATHの設定
 ENV PATH="/home/www/.composer/vendor/bin:${PATH}"
 
 # rootに戻る
 USER root
+
+# Note: PHPStan、PHP-CS-Fixer、PHPCSはプロジェクトのcomposer.jsonのdev依存関係として
+# インストールされます。グローバルインストールは避け、プロジェクトごとの
+# バージョン管理を推奨します。
 
 # パーミッションの設定
 RUN chown -R www:www /var/www/html

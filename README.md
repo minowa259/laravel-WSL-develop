@@ -98,6 +98,58 @@ docker compose up -d
 
 **重要**: docker-compose.ymlは1つだけです。環境は.envファイルで自動的に切り替わります。
 
+## 開発ツールのセットアップ
+
+初回セットアップ後、以下の手順を実施してください:
+
+### 1. package-lock.jsonの生成（重要）
+
+**CI/CDを使用する場合は必須です。** package-lock.jsonがないとGitHub Actionsでエラーが発生します。
+
+```bash
+# npmの依存関係をインストールしてpackage-lock.jsonを生成
+docker compose exec app npm install
+
+# package-lock.jsonをgitにコミット（必須）
+git add package-lock.json
+git commit -m "chore: add package-lock.json for CI/CD"
+```
+
+**注意**: package-lock.jsonは依存関係のバージョンを固定するため、チーム開発では必ずコミットしてください。
+
+### 2. コード品質ツールのインストール
+
+```bash
+# 開発ツール（PHPStan、PHP-CS-Fixer、PHPCSなど）のインストール
+make install-dev-tools
+
+# または手動でインストール
+docker compose exec app composer require --dev \
+  friendsofphp/php-cs-fixer \
+  phpstan/phpstan \
+  larastan/larastan \
+  squizlabs/php_codesniffer
+```
+
+### 開発ツールの使用方法
+
+```bash
+# PHPStan（静的解析）
+make phpstan
+
+# PHP-CS-Fixer（コードスタイル自動修正）
+make php-cs-fixer
+
+# PHPCS（コードスタイルチェック）
+make phpcs
+
+# テスト実行
+make test
+
+# カバレッジ付きテスト
+make test-coverage
+```
+
 ## 主要なコマンド
 
 ### Artisanコマンド
