@@ -1,0 +1,64 @@
+# Laravel
+*.log
+.env
+.env.backup
+.env.backup.*
+.phpactor.json
+.phpunit.result.cache
+/auth.json
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+composer.phar
+
+# 環境別設定（本番環境のみ除外、他はテンプレートとしてコミット）
+.env.production
+
+# IDE
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+/docker/mysql/data
+/docker/redis/data
+docker-compose.override.yml
+
+# Testing
+/coverage
+/.phpunit.cache
+
+# Build
+/public/css
+/public/js
+/public/mix-manifest.json
+
+# Backup
+*.sql
+*.sql.gz
+backup.sql
+
+# npm
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp

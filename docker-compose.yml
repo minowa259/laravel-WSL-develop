@@ -1,0 +1,69 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-app-${APP_ENV:-local}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html${VOLUME_OPTIONS:-}
+      - ./docker/php/${PHP_INI:-local.ini}:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - laravel
+    env_file:
+      - .env
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravel-nginx-${APP_ENV:-local}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - ./:/var/www/html${VOLUME_OPTIONS:-}
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - laravel
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: laravel-db-${APP_ENV:-local}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+    volumes:
+      - dbdata_${APP_ENV:-local}:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    networks:
+      - laravel
+
+  redis:
+    image: redis:alpine
+    container_name: laravel-redis-${APP_ENV:-local}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - laravel
+
+networks:
+  laravel:
+    driver: bridge
+
+volumes:
+  dbdata_local:
+    driver: local
+  dbdata_development:
+    driver: local
+  dbdata_staging:
+    driver: local
+  dbdata_production:
+    driver: local
