@@ -43,6 +43,14 @@ jobs:
       - name: Copy .env
         run: cp .env.example .env
 
+      - name: Debug - Check composer.json
+        run: |
+          echo "=== Checking composer.json content ==="
+          cat composer.json | grep -A 10 "require-dev"
+          echo ""
+          echo "=== Current commit ==="
+          git log -1 --oneline
+
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
 
