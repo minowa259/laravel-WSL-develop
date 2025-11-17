@@ -17,6 +17,10 @@ GitHub Actionsのバッジを追加する場合は、以下をコメント解除
 [![Deploy](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/deploy.yml)
 -->
 
+## 🚀 クイックスタート
+
+すぐに始めたい方は [QUICKSTART.md](QUICKSTART.md) をご覧ください（5分でセットアップ完了）
+
 ## 特徴
 
 ✨ **マルチ環境対応**: ローカル、開発、ステージング、本番の4環境を1つの設定で管理
@@ -118,22 +122,26 @@ docker compose up -d
 
 初回セットアップ後、以下の手順を実施してください:
 
-### 1. package-lock.jsonの生成（重要）
+### 1. package-lock.jsonの生成（CI/CD使用時は必須）
 
-**CI/CDを使用する場合は必須です。** package-lock.jsonがないとGitHub Actionsでエラーが発生します。
+**GitHub Actionsを使用する場合は必須です。** package-lock.jsonがないと警告が表示されます。
 
 ```bash
 # npmの依存関係をインストールしてpackage-lock.jsonを生成
 docker compose exec app npm install
+# または
+make install
 
-# package-lock.jsonをgitにコミット（必須）
+# package-lock.jsonをgitにコミット
 git add package-lock.json
 git commit -m "chore: add package-lock.json for CI/CD"
 ```
 
 **注意**: package-lock.jsonは依存関係のバージョンを固定するため、チーム開発では必ずコミットしてください。
 
-### 2. コード品質ツールのインストール
+### 2. コード品質ツールのインストール（推奨）
+
+**GitHub Actionsで静的解析を有効にする場合は必須です。** インストールしない場合、CI/CDで静的解析がスキップされます。
 
 ```bash
 # 開発ツール（PHPStan、PHP-CS-Fixer、PHPCSなど）のインストール
@@ -145,6 +153,10 @@ docker compose exec app composer require --dev \
   phpstan/phpstan \
   larastan/larastan \
   squizlabs/php_codesniffer
+
+# composer.jsonとcomposer.lockをコミット
+git add composer.json composer.lock
+git commit -m "chore: add code quality tools"
 ```
 
 ### 開発ツールの使用方法
